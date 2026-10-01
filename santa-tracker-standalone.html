@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Santa Tracker 2026</title>
+  <style>
+    :root {
+      --bg-1: #030912;
+      --bg-2: #0a1f35;
+      --panel: rgba(7, 19, 31, 0.96);
+      --accent: #65e5b1;
+      --accent-2: #7dd3fc;
+      --gold: #c8a36a;
+      --text: #edf6fb;
+      --muted: #8ca5b5;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-1); color: var(--text); }
+    body { display: flex; }
+    #app { width: 100%; height: 100%; display: flex; flex-direction: column; }
+    .header { height: 68px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(5,13,22,0.92); backdrop-filter: blur(10px); z-index: 10; }
+    .brand { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; }
+    .brand-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 14px var(--accent); animation: pulse 1.5s infinite; }
+    .brand-year { color: var(--gold); font-weight: 500; }
+    .nav-tabs { display: flex; gap: 2px; background: rgba(255,255,255,0.05); padding: 4px; border-radius: 6px; }
+    .nav-tab { padding: 8px 16px; border: none; background: transparent; color: var(--muted); font: 10px 'DM Mono', monospace; letter-spacing: 0.1em; cursor: pointer; border-radius: 4px; transition: all 0.2s; }
+    .nav-tab.active { background: var(--accent); color: #020a0e; font-weight: 600; }
+    .status-badge { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 20px; font: 10px 'DM Mono', monospace; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); }
+    .status-badge i { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+    .workspace { flex: 1; display: grid; grid-template-columns: 1fr auto; min-height: 0; position: relative; }
+    .globe-container { width: 100%; height: 100%; background: var(--bg-1); position: relative; }
+    .status-banner { position: absolute; bottom: 20px; left: 20px; display: flex; align-items: center; gap: 16px; padding: 14px 18px; background: var(--panel); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; backdrop-filter: blur(10px); z-index: 5; font-size: 11px; }
+    .banner-item { display: flex; flex-direction: column; gap: 3px; }
+    .banner-item span { color: var(--muted); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .banner-item strong { font-size: 13px; font-weight: 700; }
+    .side-panel { width: min(420px, 100%); height: 100%; overflow-y: auto; padding: 24px; background: var(--panel); border-left: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 20px; }
+    .panel-label { color: var(--gold); font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+    .location-title { font-size: 32px; font-weight: 800; letter-spacing: -0.04em; margin: 0; line-height: 1.1; }
+    .location-subtitle { margin: 0; color: var(--muted); font-size: 13px; }
+    .route-status { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; padding: 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; }
+    .route-point { display: flex; flex-direction: column; gap: 6px; }
+    .route-point small { color: var(--muted); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .route-point strong { font-size: 13px; font-weight: 700; }
+    .route-arrow { color: var(--accent); font-size: 20px; text-align: center; }
+    .eta-display { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; border-top: 1px solid rgba(255,255,255,0.08); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .eta-label { color: var(--muted); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .eta-value { font-size: 28px; font-weight: 800; letter-spacing: 0.05em; }
+    .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; overflow: hidden; }
+    .metric-box { padding: 14px 12px; background: rgba(7,19,31,0.8); display: flex; flex-direction: column; gap: 6px; }
+    .metric-box small { color: var(--muted); font-size: 9px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+    .metric-box strong { font-size: 13px; font-weight: 700; }
+    .metric-box.large strong { font-size: 18px; }
+    .progress-bar { height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); margin: 18px 0; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2), #f9c74f); box-shadow: 0 0 12px rgba(101,229,177,0.6); transition: width 0.2s ease; }
+    .systems-status { display: flex; flex-direction: column; gap: 8px; padding: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 6px; }
+    .system { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .sys-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+    .weather-panel { padding: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; }
+    .weather-panel small { color: var(--muted); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; display: block; margin-bottom: 12px; }
+    .weather-content { display: flex; gap: 12px; align-items: flex-start; }
+    .weather-icon { font-size: 32px; }
+    .weather-info { flex: 1; }
+    .weather-condition { font-size: 13px; font-weight: 600; }
+    .weather-temp { font-size: 16px; font-weight: 800; margin-top: 3px; }
+    .weather-details { margin-top: 6px; font-size: 10px; color: var(--muted); }
+    .demo-controls { display: flex; flex-direction: column; gap: 8px; }
+    .ctrl-btn, .ctrl-select { padding: 10px 14px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: var(--text); border-radius: 6px; font: 10px 'DM Mono', monospace; letter-spacing: 0.08em; cursor: pointer; transition: all 0.2s; }
+    .ctrl-btn:hover, .ctrl-select:hover { background: rgba(255,255,255,0.08); }
+    .ctrl-btn.active { background: var(--accent); color: #020a0e; font-weight: 600; }
+    .mission-target { padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; font-size: 10px; letter-spacing: 0.08em; }
+    .mission-target strong { color: var(--gold); font-size: 16px; }
+    .countdown-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); backdrop-filter: blur(6px); z-index: 100; }
+    .countdown-card { text-align: center; background: var(--panel); border: 1px solid rgba(101,229,177,0.3); padding: 40px; border-radius: 12px; max-width: 500px; }
+    .countdown-card h2 { margin: 0 0 30px; font-size: 24px; font-weight: 800; letter-spacing: 0.06em; color: var(--gold); }
+    .countdown-timer { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 30px; }
+    .countdown-unit { display: flex; flex-direction: column; gap: 8px; }
+    .countdown-value { font-size: 36px; font-weight: 800; color: var(--accent); }
+    .countdown-label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    .north-pole-status { display: flex; flex-direction: column; gap: 8px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+    .status-item { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+    .santa-one-info h2 { margin: 0 0 20px; font-size: 16px; font-weight: 800; color: var(--gold); }
+    .specs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; overflow: hidden; }
+    .spec-item { padding: 12px; background: rgba(7,19,31,0.8); display: flex; flex-direction: column; gap: 4px; }
+    .spec-item small { color: var(--muted); font-size: 8px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+    .spec-item strong { font-size: 11px; font-weight: 600; }
+    .reindeer-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 12px; }
+    .reindeer-badge { padding: 8px 10px; background: linear-gradient(135deg, rgba(101,229,177,0.15), rgba(125,211,252,0.1)); border: 1px solid rgba(101,229,177,0.3); border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-align: center; text-transform: uppercase; }
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; overflow: hidden; }
+    .stat-card { padding: 14px; background: rgba(7,19,31,0.8); display: flex; flex-direction: column; gap: 6px; position: relative; }
+    .stat-card small { color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+    .stat-card strong { font-size: 15px; font-weight: 800; }
+    .stat-pct { position: absolute; top: 8px; right: 8px; background: rgba(101,229,177,0.2); color: var(--accent); padding: 2px 6px; border-radius: 3px; font-size: 8px; font-weight: 700; }
+    @keyframes pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.2); opacity: 0.7; } }
+    @media (max-width: 768px) {
+      .workspace { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+      .side-panel { width: 100%; border-left: none; border-top: 1px solid rgba(255,255,255,0.08); max-height: 50vh; }
+      .globe-container { height: 50vh; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <span>SANTA TRACKER</span>
+        <span class="brand-year">2026</span>
+      </div>
+      <nav class="nav-tabs">
+        <button class="nav-tab active" onclick="showTab('tracker')">TRACK</button>
+        <button class="nav-tab" onclick="showTab('stats')">STATS</button>
+        <button class="nav-tab" onclick="showTab('santaone')">SANTA ONE</button>
+      </nav>
+      <div class="status-badge"><i></i><span id="statusText">DEMO</span></div>
+    </header>
+    <div class="workspace">
+      <div class="globe-container" id="globe"></div>
+      <div class="status-banner">
+        <div class="banner-item"><span>SLEIGH IDENT</span><strong>SANTA ONE</strong></div>
+        <div style="color: var(--muted);">•</div>
+        <div class="banner-item"><span>STATUS</span><strong id="phaseText">AIRBORNE</strong></div>
+        <div style="color: var(--muted);">•</div>
+        <div class="banner-item"><span>GIFTS</span><strong id="giftsText">0</strong></div>
+        <div style="color: var(--muted);">•</div>
+        <div class="banner-item"><span>SPEED</span><strong id="speedText">0 MPH</strong></div>
+      </div>
+      <aside class="side-panel" id="trackerTab">
+        <div>
+          <small class="panel-label">MISSION CONTROL</small>
+          <h1 class="location-title" id="cityName">Loading...</h1>
+          <p class="location-subtitle" id="locationName">Calculating position...</p>
+        </div>
+        <div class="route-status">
+          <div class="route-point"><small>LAST SEEN</small><strong id="prevCity">North Pole</strong></div>
+          <div class="route-arrow">→</div>
+          <div class="route-point"><small>HEADING FOR</small><strong id="nextCity">Loading...</strong></div>
+        </div>
+        <div class="eta-display">
+          <span class="eta-label">ARRIVING IN</span>
+          <strong class="eta-value" id="etaText">00:00</strong>
+        </div>
+        <div class="metrics-grid">
+          <div class="metric-box large"><small>GIFTS DELIVERED</small><strong id="giftsMetric">0</strong></div>
+          <div class="metric-box"><small>CURRENT SPEED</small><strong id="speedMetric">0 MPH</strong></div>
+          <div class="metric-box"><small>ALTITUDE</small><strong id="altitudeMetric">0 FT</strong></div>
+          <div class="metric-box"><small>DISTANCE TRAVELED</small><strong id="distanceMetric">0 MI</strong></div>
+          <div class="metric-box"><small>STOPS COMPLETED</small><strong id="stopsMetric">0 / 518</strong></div>
+          <div class="metric-box"><small>LOCAL TIME</small><strong id="localTimeMetric">--:-- --</strong></div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width: 0%"></div></div>
+        <div class="systems-status">
+          <div class="system"><i class="sys-dot"></i>RADAR TRACKING</div>
+          <div class="system"><i class="sys-dot"></i>SATELLITE CONNECTED</div>
+          <div class="system"><i class="sys-dot"></i>REINDEER NOMINAL</div>
+          <div class="system"><i class="sys-dot"></i>SLEIGH NOMINAL</div>
+        </div>
+        <div class="weather-panel">
+          <small>CURRENT CONDITIONS</small>
+          <div class="weather-content">
+            <div class="weather-icon" id="weatherIcon">🌤️</div>
+            <div class="weather-info">
+              <div class="weather-condition" id="weatherCondition">Loading...</div>
+              <div class="weather-temp" id="weatherTemp">-- °F</div>
+              <div class="weather-details" id="weatherDetails">Loading...</div>
+            </div>
+          </div>
+        </div>
+        <div class="demo-controls">
+          <button class="ctrl-btn active" id="demoBtn" onclick="toggleDemo()">⏸ PAUSE DEMO</button>
+          <select class="ctrl-select" id="speedSelect" onchange="changeSpeed(this.value)">
+            <option value="1">1× SPEED</option>
+            <option value="5">5× SPEED</option>
+            <option value="10">10× SPEED</option>
+            <option value="25" selected>25× SPEED</option>
+            <option value="50">50× SPEED</option>
+            <option value="100">100× SPEED</option>
+          </select>
+          <button class="ctrl-btn active" id="followBtn" onclick="toggleFollow()">🎯 FOLLOWING</button>
+        </div>
+        <div class="mission-target"><small>FINAL MISSION TARGET</small><strong id="targetGifts">8,330,000,000</strong></div>
+      </aside>
+      <aside class="side-panel" id="statsTab" style="display:none;">
+        <h2 style="margin:0; color:var(--gold); font-size:16px;">MISSION STATISTICS</h2>
+        <div class="stat-grid">
+          <div class="stat-card"><small>GIFTS DELIVERED</small><strong id="statGifts">0</strong><span class="stat-pct" id="statGiftsPct">0%</span></div>
+          <div class="stat-card"><small>DISTANCE TRAVELED</small><strong id="statDistance">0 MI</strong></div>
+          <div class="stat-card"><small>LOCATIONS VISITED</small><strong id="statLocations">0 / 518</strong></div>
+          <div class="stat-card"><small>COUNTRIES/TERRITORIES</small><strong id="statCountries">0</strong></div>
+          <div class="stat-card"><small>CURRENT SPEED</small><strong id="statSpeed">0 MPH</strong></div>
+          <div class="stat-card"><small>ALTITUDE</small><strong id="statAltitude">0 FT</strong></div>
+        </div>
+      </aside>
+      <aside class="side-panel" id="santaoneTab" style="display:none;">
+        <div class="santa-one-info">
+          <h2>SANTA ONE — TECHNICAL SPECIFICATIONS</h2>
+          <div class="specs-grid">
+            <div class="spec-item"><small>Aircraft Type</small><strong>All-weather Christmas delivery sleigh</strong></div>
+            <div class="spec-item"><small>Designer</small><strong>K. Kringle & Elves, Inc.</strong></div>
+            <div class="spec-item"><small>Home Base</small><strong>North Pole</strong></div>
+            <div class="spec-item"><small>First Flight</small><strong>December 24, 343 A.D.</strong></div>
+            <div class="spec-item"><small>Gift Payload</small><strong>60,000 tons</strong></div>
+            <div class="spec-item"><small>Takeoff Weight</small><strong>260 lb</strong></div>
+            <div class="spec-item"><small>Propulsion</small><strong>9 RP — Reindeer Power</strong></div>
+            <div class="spec-item"><small>Fuel</small><strong>Hay, oats & carrots</strong></div>
+            <div class="spec-item"><small>Maximum Speed</small><strong>Faster than starlight</strong></div>
+            <div class="spec-item"><small>Climb Rate</small><strong>One "T" — Twinkle</strong></div>
+          </div>
+          <h3 style="margin-top:20px; margin-bottom:12px; font-size:12px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase;">REINDEER ROSTER</h3>
+          <div class="reindeer-list">
+            <div class="reindeer-badge">Dasher</div>
+            <div class="reindeer-badge">Dancer</div>
+            <div class="reindeer-badge">Prancer</div>
+            <div class="reindeer-badge">Vixen</div>
+            <div class="reindeer-badge">Comet</div>
+            <div class="reindeer-badge">Cupid</div>
+            <div class="reindeer-badge">Donner</div>
+            <div class="reindeer-badge">Blitzen</div>
+            <div class="reindeer-badge">Rudolph</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+    <div id="countdownOverlay" style="display:none;" class="countdown-overlay">
+      <div class="countdown-card">
+        <h2>SANTA LAUNCHES IN</h2>
+        <div class="countdown-timer">
+          <div class="countdown-unit"><span class="countdown-value" id="days">00</span><span class="countdown-label">DAYS</span></div>
+          <div class="countdown-unit"><span class="countdown-value" id="hours">00</span><span class="countdown-label">HOURS</span></div>
+          <div class="countdown-unit"><span class="countdown-value" id="minutes">00</span><span class="countdown-label">MINUTES</span></div>
+          <div class="countdown-unit"><span class="countdown-value" id="seconds">00</span><span class="countdown-label">SECONDS</span></div>
+        </div>
+        <div class="north-pole-status">
+          <div class="status-item"><i class="status-dot"></i>Sleigh: READY</div>
+          <div class="status-item"><i class="status-dot"></i>Navigation: ONLINE</div>
+          <div class="status-item"><i class="status-dot"></i>Reindeer: READY</div>
+          <div class="status-item"><i class="status-dot"></i>Weather: MONITORING</div>
+          <div class="status-item"><i class="status-dot"></i>Route: CALCULATED</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cesiumjs.org/releases/1.120/Cesium.js"></script>
+  <link href="https://cesiumjs.org/releases/1.120/Widgets/widgets.css" rel="stylesheet">
+  <script>
+    const ROUTE_START = new Date(2026, 11, 24, 0, 0, 0);
+    const ROUTE_END = new Date(2026, 11, 25, 8, 0, 0);
+    const FINAL_GIFT_TARGET = 8_330_000_000;
+    
+    const ANCHORS = [
+      ['North Pole', 'Arctic', 'Canada', 'CA', 89.9, 0, 'UTC', 0.4],
+      ['Auckland', 'Auckland', 'New Zealand', 'NZ', -36.85, 174.76, 'Pacific/Auckland', 2.1],
+      ['Sydney', 'NSW', 'Australia', 'AU', -33.87, 151.21, 'Australia/Sydney', 3.4],
+      ['Tokyo', 'Tokyo', 'Japan', 'JP', 35.68, 139.69, 'Asia/Tokyo', 5.2],
+      ['Singapore', 'Singapore', 'Singapore', 'SG', 1.35, 103.82, 'Asia/Singapore', 2.8],
+      ['Dubai', 'Dubai', 'UAE', 'AE', 25.2, 55.27, 'Asia/Dubai', 2.8],
+      ['Mumbai', 'Maharashtra', 'India', 'IN', 19.08, 72.88, 'Asia/Kolkata', 5.5],
+      ['Cairo', 'Cairo', 'Egypt', 'EG', 30.05, 31.24, 'Africa/Cairo', 3.2],
+      ['Lagos', 'Lagos', 'Nigeria', 'NG', 6.5, 3.36, 'Africa/Lagos', 2.8],
+      ['Johannesburg', 'Gauteng', 'South Africa', 'ZA', -26.2, 28.04, 'Africa/Johannesburg', 2.4],
+      ['London', 'England', 'United Kingdom', 'GB', 51.51, -0.13, 'Europe/London', 4.8],
+      ['Paris', 'Île-de-France', 'France', 'FR', 48.86, 2.35, 'Europe/Paris', 4.4],
+      ['Reykjavik', 'Reykjanes', 'Iceland', 'IS', 64.15, -21.94, 'Atlantic/Reykjavik', 1.2],
+      ['Toronto', 'Ontario', 'Canada', 'CA', 43.65, -79.38, 'America/Toronto', 3.2],
+      ['New York', 'New York', 'USA', 'US', 40.71, -74.01, 'America/New_York', 5.7],
+      ['Nashville', 'Tennessee', 'USA', 'US', 36.16, -86.78, 'America/Chicago', 2.4],
+      ['Chattanooga', 'Tennessee', 'USA', 'US', 35.05, -85.31, 'America/New_York', 1.3],
+      ['Miami', 'Florida', 'USA', 'US', 25.76, -80.19, 'America/New_York', 3.4],
+      ['Mexico City', 'Mexico City', 'Mexico', 'MX', 19.43, -99.13, 'America/Mexico_City', 4.5],
+      ['Lima', 'Lima', 'Peru', 'PE', -12.05, -77.04, 'America/Lima', 3.1],
+      ['São Paulo', 'São Paulo', 'Brazil', 'BR', -23.55, -46.63, 'America/Sao_Paulo', 5.5],
+    ];
+
+    const ROUTE = ANCHORS.map((a, i) => ({ id: i, city: a[0], region: a[1], country: a[2], countryCode: a[3], latitude: a[4], longitude: a[5], timezone: a[6], weight: a[7] }));
+
+    let viewer, santa, lastTime = performance.now(), simulated = new Date(2026, 11, 24, 17), demo = true, speed = 25, follow = true;
+
+    function interpolate(a, b, t) {
+      const deltaLon = ((b.longitude - a.longitude + 540) % 360) - 180;
+      return {
+        city: t === 0 ? a.city : t === 1 ? b.city : `${b.country} delivery area`,
+        region: t < 0.5 ? a.region : b.region,
+        country: t < 0.5 ? a.country : b.country,
+        countryCode: t < 0.5 ? a.countryCode : b.countryCode,
+        timezone: t < 0.5 ? a.timezone : b.timezone,
+        latitude: a.latitude + (b.latitude - a.latitude) * t,
+        longitude: a.longitude + deltaLon * t,
+        weight: a.weight + (b.weight - a.weight) * t,
+      };
+    }
+
+    function getSnapshot(time) {
+      const elapsed = time - ROUTE_START;
+      const duration = ROUTE_END - ROUTE_START;
+      const progress = Math.max(0, Math.min(1, elapsed / duration));
+      const index = Math.floor(progress * (ROUTE.length - 1));
+      const segmentProgress = (progress * (ROUTE.length - 1)) - index;
+      const current = ROUTE[index];
+      const next = ROUTE[index + 1] || current;
+      const previous = index > 0 ? ROUTE[index - 1] : current;
+      const pos = interpolate(current, next, segmentProgress);
+      const altitude = 9000 + Math.sin(segmentProgress * Math.PI) * 3500 + Math.sin(progress * Math.PI * 22) * 120;
+      const distance = progress * 52000;
+      const speed = Math.max(0, 700000 + Math.sin(progress * Math.PI * 18) * 220000);
+      const gifts = Math.round(FINAL_GIFT_TARGET * progress * 1.1);
+      return { ...pos, previous, current, next, progress, segmentProgress, altitude, distance, speed, gifts, index };
+    }
+
+    function format(n) { return new Intl.NumberFormat('en-US').format(Math.floor(n)); }
+    function pad(n) { return String(n).padStart(2, '0'); }
+    
+    function updateUI(snap) {
+      document.getElementById('cityName').textContent = snap.city;
+      document.getElementById('locationName').textContent = (snap.region ? snap.region + ', ' : '') + snap.country;
+      document.getElementById('prevCity').textContent = snap.previous.city;
+      document.getElementById('nextCity').textContent = snap.next.city;
+      document.getElementById('giftsMetric').textContent = format(snap.gifts);
+      document.getElementById('giftsText').textContent = format(snap.gifts);
+      document.getElementById('speedMetric').textContent = format(snap.speed) + ' MPH';
+      document.getElementById('speedText').textContent = format(snap.speed) + ' MPH';
+      document.getElementById('altitudeMetric').textContent = format(snap.altitude * 3.28084) + ' FT';
+      document.getElementById('distanceMetric').textContent = format(snap.distance) + ' MI';
+      document.getElementById('distanceMetric').textContent = format(snap.distance) + ' MI';
+      document.getElementById('stopsMetric').textContent = Math.floor(snap.progress * ROUTE.length) + ' / ' + ROUTE.length;
+      document.getElementById('progressFill').style.width = (snap.progress * 100) + '%';
+      const eta = Math.max(0, Math.round((1 - snap.segmentProgress) * 100));
+      document.getElementById('etaText').textContent = '00:' + pad(eta);
+      document.getElementById('phaseText').textContent = simulated > ROUTE_END ? 'MISSION COMPLETE' : snap.progress > 0.5 && snap.segmentProgress < 0.08 ? 'DELIVERING' : 'AIRBORNE';
+      document.getElementById('statGifts').textContent = format(snap.gifts);
+      document.getElementById('statGiftsPct').textContent = Math.round(snap.gifts / FINAL_GIFT_TARGET * 100) + '%';
+      document.getElementById('statDistance').textContent = format(snap.distance) + ' MI';
+      document.getElementById('statLocations').textContent = Math.floor(snap.progress * ROUTE.length) + ' / ' + ROUTE.length;
+      document.getElementById('statSpeed').textContent = format(snap.speed) + ' MPH';
+      document.getElementById('statAltitude').textContent = format(snap.altitude * 3.28084) + ' FT';
+      const countries = new Set(ROUTE.slice(0, Math.floor(snap.progress * ROUTE.length)).map(r => r.countryCode)).size;
+      document.getElementById('statCountries').textContent = countries;
+      if (viewer && santa) {
+        const pos = Cesium.Cartesian3.fromDegrees(snap.longitude, snap.latitude, snap.altitude * 1000);
+        santa.position = pos;
+        if (follow) viewer.camera.lookAt(pos, new Cesium.Cartesian3(0, -6500000, 2600000));
+      }
+    }
+
+    function showTab(tab) {
+      document.getElementById('trackerTab').style.display = tab === 'tracker' ? 'flex' : 'none';
+      document.getElementById('statsTab').style.display = tab === 'stats' ? 'flex' : 'none';
+      document.getElementById('santaoneTab').style.display = tab === 'santaone' ? 'flex' : 'none';
+      document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+
+    function toggleDemo() {
+      demo = !demo;
+      document.getElementById('demoBtn').classList.toggle('active');
+      document.getElementById('demoBtn').textContent = demo ? '⏸ PAUSE DEMO' : '▶ START DEMO';
+    }
+
+    function toggleFollow() {
+      follow = !follow;
+      document.getElementById('followBtn').classList.toggle('active');
+      document.getElementById('followBtn').textContent = follow ? '🎯 FOLLOWING' : '🔍 FREE LOOK';
+    }
+
+    function changeSpeed(val) { speed = parseInt(val); }
+
+    async function initCesium() {
+      Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIzYzMzMGI1Ni1iNDMwLTQwMzUtOGI5YS00YzAyNGU4NDkzZTQiLCJpZCI6MzAwMDksImFzc2V0cyI6WzY0XSwic2NvcGVzIjpbImFzbCJdLCJleHBpcmVzIjoxNzUwNjExMDA2fQ.XTXGQ0fLePa02i6aLnbfDJ81RXMEfDqH8nN4iZi6Guk';
+      viewer = await Cesium.Cesium3DTileset.fromUrl(Cesium.IonResource.fromAssetId(1), {
+        maximumScreenSpaceError: 16,
+      }).then(tileset => {
+        const v = new Cesium.Viewer('globe', { animation: false, timeline: false, baseLayerPicker: false, geocoder: false, homeButton: false, sceneModePicker: false, navigationHelpButton: false, fullscreenButton: false });
+        v.scene.primitives.add(tileset);
+        v.scene.globe.enableLighting = true;
+        v.scene.globe.showGroundAtmosphere = true;
+        v.scene.skyAtmosphere.show = true;
+        v.scene.backgroundColor = Cesium.Color.fromCssColorString('#030912');
+        v.scene.globe.baseColor = Cesium.Color.fromCssColorString('#0a1f35');
+        return v;
+      }).catch(() => {
+        const v = new Cesium.Viewer('globe', { animation: false, timeline: false, baseLayerPicker: false });
+        v.scene.globe.enableLighting = true;
+        v.scene.backgroundColor = Cesium.Color.fromCssColorString('#030912');
+        v.scene.globe.baseColor = Cesium.Color.fromCssColorString('#0a1f35');
+        return v;
+      });
+      
+      santa = viewer.entities.add({
+        name: 'SANTA ONE',
+        position: Cesium.Cartesian3.fromDegrees(0, 89.9, 9000),
+        point: new Cesium.PointGraphics({
+          pixelSize: 12,
+          color: Cesium.Color.YELLOW,
+          outlineColor: Cesium.Color.WHITE,
+          outlineWidth: 2,
+        }),
+      });
+    }
+
+    function animate() {
+      const now = performance.now();
+      const delta = Math.min(100, now - lastTime);
+      lastTime = now;
+      if (demo) simulated = new Date(simulated.getTime() + delta * speed);
+      const snap = getSnapshot(simulated);
+      updateUI(snap);
+      requestAnimationFrame(animate);
+    }
+
+    window.addEventListener('load', () => {
+      initCesium();
+      animate();
+      // Update countdown
+      setInterval(() => {
+        const now = new Date();
+        if (now < ROUTE_START) {
+          const diff = Math.floor((ROUTE_START - now) / 1000);
+          document.getElementById('days').textContent = pad(Math.floor(diff / 86400));
+          document.getElementById('hours').textContent = pad(Math.floor((diff % 86400) / 3600));
+          document.getElementById('minutes').textContent = pad(Math.floor((diff % 3600) / 60));
+          document.getElementById('seconds').textContent = pad(diff % 60);
+          document.getElementById('countdownOverlay').style.display = 'flex';
+        } else {
+          document.getElementById('countdownOverlay').style.display = 'none';
+        }
+      }, 1000);
+    });
+  </script>
+</body>
+</html>
